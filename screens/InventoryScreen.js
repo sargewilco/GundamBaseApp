@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
   Image, StyleSheet, ActivityIndicator, ScrollView, RefreshControl,
@@ -38,7 +38,24 @@ export default function InventoryScreen({ navigation }) {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const unsub = navigation.addListener('focus', () => load());
+    return unsub;
+  }, [navigation]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddEdit', { kit: null, onSave: load })}
+          style={styles.addBtn}
+        >
+          <Text style={styles.addBtnText}>＋</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -96,8 +113,8 @@ export default function InventoryScreen({ navigation }) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.tabsScroll}
         contentContainerStyle={styles.tabs}
+        style={styles.tabsScroll}
       >
         {GRADE_ORDER.map(g => (
           <TouchableOpacity
@@ -105,9 +122,7 @@ export default function InventoryScreen({ navigation }) {
             style={[styles.tab, activeGrade === g && styles.tabActive]}
             onPress={() => setActiveGrade(g)}
           >
-            <Text style={[styles.tabText, activeGrade === g && styles.tabTextActive]}>
-              {g}
-            </Text>
+            <Text style={[styles.tabText, activeGrade === g && styles.tabTextActive]}>{g}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -122,7 +137,7 @@ export default function InventoryScreen({ navigation }) {
           <TouchableOpacity
             style={styles.card}
             activeOpacity={0.75}
-            onPress={() => navigation.navigate('KitDetail', { kit: item })}
+            onPress={() => navigation.navigate('KitDetail', { kit: item, onSave: load })}
           >
             <View style={styles.cardThumb}>
               {item.thumbnail
@@ -158,6 +173,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, backgroundColor: '#0d0f14', alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: '#8892a4', marginTop: 12, fontSize: 14 },
 
+  addBtn: { marginRight: 4, padding: 6 },
+  addBtnText: { color: '#4f8ef7', fontSize: 26, fontWeight: '300', lineHeight: 28 },
+
   statsBar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#13161e', paddingVertical: 12, paddingHorizontal: 16,
@@ -171,44 +189,44 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 9, letterSpacing: 1.2, color: '#4a5568', marginTop: 2 },
   statDivider: { width: 1, height: 32, backgroundColor: '#252d42' },
 
-  searchRow: { paddingHorizontal: 12, paddingVertical: 8 },
+  searchRow: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6 },
   searchInput: {
     backgroundColor: '#13161e', borderWidth: 1, borderColor: '#252d42',
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
-    color: '#e2e8f0', fontSize: 15,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+    color: '#e2e8f0', fontSize: 16,
   },
 
-  tabsScroll: { maxHeight: 44 },
-  tabs: { paddingHorizontal: 12, gap: 6, alignItems: 'center', paddingBottom: 8 },
+  tabsScroll: { flexGrow: 0 },
+  tabs: { paddingHorizontal: 12, paddingVertical: 8, gap: 8, alignItems: 'center' },
   tab: {
-    paddingHorizontal: 14, paddingVertical: 5,
+    paddingHorizontal: 18, paddingVertical: 8,
     borderRadius: 20, borderWidth: 1, borderColor: '#252d42',
     backgroundColor: '#13161e',
   },
   tabActive: { backgroundColor: '#4f8ef7', borderColor: '#4f8ef7' },
-  tabText: { color: '#8892a4', fontSize: 13, fontWeight: '600' },
-  tabTextActive: { color: '#fff' },
+  tabText: { color: '#8892a4', fontSize: 15, fontWeight: '600' },
+  tabTextActive: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
-  list: { padding: 12, gap: 10 },
+  list: { padding: 12, gap: 10, paddingBottom: 32 },
   card: {
     flexDirection: 'row', backgroundColor: '#161b27',
     borderRadius: 10, overflow: 'hidden',
     borderWidth: 1, borderColor: '#252d42',
   },
-  cardThumb: { width: 80, height: 80 },
-  thumbImg: { width: 80, height: 80 },
+  cardThumb: { width: 88, height: 88 },
+  thumbImg: { width: 88, height: 88 },
   thumbPlaceholder: {
-    width: 80, height: 80, backgroundColor: '#1a1f2e',
+    width: 88, height: 88, backgroundColor: '#1a1f2e',
     alignItems: 'center', justifyContent: 'center',
   },
-  thumbPlaceholderText: { fontSize: 24, color: '#4a5568' },
+  thumbPlaceholderText: { fontSize: 28, color: '#4a5568' },
   cardBody: { flex: 1, padding: 10, justifyContent: 'center' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  gradeBadge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  gradeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 11, color: '#8892a4' },
-  kitName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600', lineHeight: 18 },
+  gradeBadge: { borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3 },
+  gradeBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusText: { fontSize: 12, color: '#8892a4' },
+  kitName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600', lineHeight: 20 },
   kitSeries: { color: '#4a5568', fontSize: 12, marginTop: 2 },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyText: { color: '#4a5568', fontSize: 15 },

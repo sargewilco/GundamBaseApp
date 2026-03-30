@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
-  View, Text, Image, ScrollView, StyleSheet, FlatList, Dimensions,
+  View, Text, Image, ScrollView, StyleSheet,
+  FlatList, Dimensions, TouchableOpacity,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -17,8 +18,21 @@ const STATUS_LABELS = {
   backlog: 'Backlog', 'in-progress': 'In Progress', complete: 'Complete',
 };
 
-export default function KitDetailScreen({ route }) {
-  const { kit } = route.params;
+export default function KitDetailScreen({ route, navigation }) {
+  const { kit, onSave } = route.params;
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AddEdit', { kit, onSave })}
+          style={styles.editBtn}
+        >
+          <Text style={styles.editBtnText}>Edit</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, kit]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -42,7 +56,7 @@ export default function KitDetailScreen({ route }) {
         </View>
         <Text style={styles.name}>{kit.name}</Text>
         <Text style={styles.series}>{kit.series}</Text>
-        {kit.modelNumber && <Text style={styles.modelNumber}>{kit.modelNumber}</Text>}
+        {kit.modelNumber ? <Text style={styles.modelNumber}>{kit.modelNumber}</Text> : null}
       </View>
 
       {/* Notes */}
@@ -82,25 +96,23 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d0f14' },
   content: { paddingBottom: 40 },
 
+  editBtn: { marginRight: 4, padding: 6 },
+  editBtnText: { color: '#4f8ef7', fontSize: 17, fontWeight: '600' },
+
   thumbWrap: {
     width: '100%', height: 280, backgroundColor: '#13161e',
     borderBottomWidth: 1, borderBottomColor: '#252d42',
   },
   thumb: { width: '100%', height: '100%' },
-  thumbPlaceholder: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-  },
+  thumbPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   thumbPlaceholderText: { color: '#4a5568', fontSize: 16 },
 
   header: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#252d42' },
   badgeRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   gradeBadge: { borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
-  gradeBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  statusBadge: {
-    borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1,
-  },
-  statusBadgeText: { fontSize: 12, fontWeight: '600' },
+  gradeBadgeText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  statusBadge: { borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
+  statusBadgeText: { fontSize: 13, fontWeight: '600' },
   name: { color: '#e2e8f0', fontSize: 22, fontWeight: '700', lineHeight: 28, marginBottom: 4 },
   series: { color: '#8892a4', fontSize: 14 },
   modelNumber: { color: '#4a5568', fontSize: 13, marginTop: 4 },
@@ -110,7 +122,7 @@ const styles = StyleSheet.create({
     color: '#4a5568', fontSize: 11, letterSpacing: 1.2,
     textTransform: 'uppercase', marginBottom: 10, fontWeight: '600',
   },
-  notes: { color: '#8892a4', fontSize: 14, lineHeight: 22 },
+  notes: { color: '#8892a4', fontSize: 15, lineHeight: 22 },
 
   buildPhoto: {
     width: (width - 48) / 2, height: (width - 48) / 2,

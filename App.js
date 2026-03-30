@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import InventoryScreen from './screens/InventoryScreen';
 import KitDetailScreen from './screens/KitDetailScreen';
+import AddEditScreen from './screens/AddEditScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -28,6 +29,11 @@ export default function App() {
           name="KitDetail"
           component={KitDetailScreen}
           options={({ route }) => ({ title: route.params.kit.name })}
+        />
+        <Stack.Screen
+          name="AddEdit"
+          component={AddEditScreen}
+          options={({ route }) => ({ title: route.params.kit ? 'Edit Kit' : 'Add Kit' })}
         />
       </Stack.Navigator>
     </NavigationContainer>
