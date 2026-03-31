@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { addKit, updateKit, deleteKit, saveCredentials } from '../services/api';
 import { colors, grade as gradeTheme } from '../constants/theme';
+import { tapFeedback, selectFeedback, successFeedback, errorFeedback } from '../utils/feedback';
 
 const GRADES = ['PG', 'MG', 'RG', 'FM', 'HG', 'EG', 'OTHER'];
 const STATUSES = [
@@ -54,11 +55,12 @@ export default function AddEditScreen({ route, navigation }) {
   }
 
   async function handleSave() {
-    if (!name.trim() || !series.trim()) return Alert.alert('Required', 'Name and series are required.');
+    if (!name.trim() || !series.trim()) { errorFeedback(); return Alert.alert('Required', 'Name and series are required.'); }
     setSaving(true);
     const data = { name: name.trim(), series: series.trim(), modelNumber: modelNumber.trim() || null, grade, status, notes };
     await runWithAuth(async () => {
       isEdit ? await updateKit(kit.id, data) : await addKit(data);
+      await successFeedback();
       onSave?.();
       navigation.goBack();
     });
@@ -88,7 +90,7 @@ export default function AddEditScreen({ route, navigation }) {
             <Pressable
               key={g}
               style={[styles.gradeBtn, active && { backgroundColor: gc.bg, borderColor: gc.bg }]}
-              onPress={() => setGrade(g)}
+              onPress={() => { selectFeedback(); setGrade(g); }}
             >
               <Text style={[styles.gradeBtnText, active && { color: gc.text, fontWeight: '700' }]}>{g}</Text>
             </Pressable>
@@ -118,7 +120,7 @@ export default function AddEditScreen({ route, navigation }) {
             <Pressable
               key={s.value}
               style={[styles.statusBtn, active && { borderColor: c, backgroundColor: c + '18' }]}
-              onPress={() => setStatus(s.value)}
+              onPress={() => { selectFeedback(); setStatus(s.value); }}
             >
               <Ionicons name={s.icon} size={20} color={active ? c : colors.text3} />
               <Text style={[styles.statusBtnText, active && { color: c, fontWeight: '700' }]}>{s.label}</Text>

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchInventory } from '../services/api';
 import { colors, grade as gradeTheme, status as statusTheme } from '../constants/theme';
+import { tapFeedback, selectFeedback } from '../utils/feedback';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 48) / 2;
@@ -122,7 +123,7 @@ export default function CollectionScreen({ navigation }) {
                   ? { backgroundColor: colors.accent, borderColor: colors.accent }
                   : {},
               ]}
-              onPress={() => setActiveGrade(g)}
+              onPress={() => { selectFeedback(); setActiveGrade(g); }}
             >
               <Text style={[styles.chipText, active && { color: gc ? gc.text : '#fff', fontWeight: '700' }]}>
                 {g}
@@ -144,7 +145,7 @@ export default function CollectionScreen({ navigation }) {
         contentContainerStyle={styles.grid}
         ListHeaderComponent={ListHeader}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.accent} />}
-        renderItem={({ item }) => <KitCard kit={item} onPress={() => navigation.navigate('KitDetail', { kit: item, onSave: load })} />}
+        renderItem={({ item }) => <KitCard kit={item} onPress={() => { tapFeedback(); navigation.navigate('KitDetail', { kit: item, onSave: load }); }} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="cube-outline" size={48} color={colors.text3} />
