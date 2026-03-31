@@ -1,83 +1,86 @@
 import React, { useEffect } from 'react';
 import {
   View, Text, Image, ScrollView, StyleSheet,
-  FlatList, Dimensions, TouchableOpacity,
+  FlatList, Dimensions, Pressable,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, grade as gradeTheme, status as statusTheme } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 const API_BASE = 'https://gundam.tomcannon.com';
 
-const GRADE_COLORS = {
-  PG: '#f0b429', MG: '#4f8ef7', RG: '#3ecf8e',
-  FM: '#a78bfa', HG: '#f97316', EG: '#ec4899', OTHER: '#8892a4',
-};
-const STATUS_COLORS = {
-  backlog: '#4a5568', 'in-progress': '#f97316', complete: '#3ecf8e',
-};
-const STATUS_LABELS = {
-  backlog: 'Backlog', 'in-progress': 'In Progress', complete: 'Complete',
-};
-
 export default function KitDetailScreen({ route, navigation }) {
   const { kit, onSave } = route.params;
+  const gc = gradeTheme[kit.grade] || gradeTheme.OTHER;
+  const sc = statusTheme[kit.status];
 
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
+        <Pressable
           onPress={() => navigation.navigate('AddEdit', { kit, onSave })}
-          style={styles.editBtn}
+          style={({ pressed }) => [{ paddingHorizontal: 8, opacity: pressed ? 0.6 : 1 }]}
         >
-          <Text style={styles.editBtnText}>Edit</Text>
-        </TouchableOpacity>
+          <Text style={styles.editBtn}>Edit</Text>
+        </Pressable>
       ),
     });
   }, [navigation, kit]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Thumbnail */}
-      <View style={styles.thumbWrap}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Hero image */}
+      <View style={styles.hero}>
         {kit.thumbnail
-          ? <Image source={{ uri: `${API_BASE}${kit.thumbnail}` }} style={styles.thumb} resizeMode="contain" />
-          : <View style={styles.thumbPlaceholder}><Text style={styles.thumbPlaceholderText}>No Image</Text></View>
+          ? <Image source={{ uri: `${API_BASE}${kit.thumbnail}` }} style={styles.heroImg} resizeMode="cover" />
+          : <View style={styles.heroPlaceholder}>
+              <Ionicons name="cube-outline" size={64} color={colors.text3} />
+            </View>
         }
+        <View style={styles.heroOverlay} />
       </View>
 
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Info card */}
+      <View style={styles.infoCard}>
         <View style={styles.badgeRow}>
-          <View style={[styles.gradeBadge, { backgroundColor: GRADE_COLORS[kit.grade] || '#8892a4' }]}>
-            <Text style={styles.gradeBadgeText}>{kit.grade}</Text>
+          <View style={[styles.gradeBadge, { backgroundColor: gc.bg }]}>
+            <Text style={[styles.gradeBadgeText, { color: gc.text }]}>{kit.grade}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[kit.status] + '33', borderColor: STATUS_COLORS[kit.status] }]}>
-            <Text style={[styles.statusBadgeText, { color: STATUS_COLORS[kit.status] }]}>{STATUS_LABELS[kit.status]}</Text>
+          <View style={[styles.statusBadge, { borderColor: sc.color }]}>
+            <View style={[styles.statusDot, { backgroundColor: sc.color }]} />
+            <Text style={[styles.statusText, { color: sc.color }]}>{sc.label}</Text>
           </View>
         </View>
+
         <Text style={styles.name}>{kit.name}</Text>
         <Text style={styles.series}>{kit.series}</Text>
-        {kit.modelNumber ? <Text style={styles.modelNumber}>{kit.modelNumber}</Text> : null}
+        {kit.modelNumber
+          ? <Text style={styles.modelNum}>{kit.modelNumber}</Text>
+          : null
+        }
       </View>
 
       {/* Notes */}
       {kit.notes ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
-          <Text style={styles.notes}>{kit.notes}</Text>
+          <View style={styles.notesBox}>
+            <Text style={styles.notesText}>{kit.notes}</Text>
+          </View>
         </View>
       ) : null}
 
-      {/* Build Photos */}
+      {/* Build photos */}
       {kit.buildPhotos?.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Build Photos</Text>
+          <Text style={styles.sectionTitle}>Build Photos · {kit.buildPhotos.length}</Text>
           <FlatList
             data={kit.buildPhotos}
-            keyExtractor={(p, i) => i.toString()}
+            keyExtractor={(_, i) => i.toString()}
             numColumns={2}
             scrollEnabled={false}
-            columnWrapperStyle={{ gap: 8 }}
-            contentContainerStyle={{ gap: 8 }}
+            columnWrapperStyle={{ gap: 10 }}
+            contentContainerStyle={{ gap: 10 }}
             renderItem={({ item }) => (
               <Image
                 source={{ uri: `${API_BASE}${item.path}` }}
@@ -88,44 +91,59 @@ export default function KitDetailScreen({ route, navigation }) {
           />
         </View>
       )}
+
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0d0f14' },
-  content: { paddingBottom: 40 },
+  container:    { flex: 1, backgroundColor: colors.bg },
+  editBtn:      { color: colors.accent, fontSize: 17, fontWeight: '600' },
 
-  editBtn: { marginRight: 4, padding: 6 },
-  editBtnText: { color: '#4f8ef7', fontSize: 17, fontWeight: '600' },
-
-  thumbWrap: {
-    width: '100%', height: 280, backgroundColor: '#13161e',
-    borderBottomWidth: 1, borderBottomColor: '#252d42',
+  hero:         { width: '100%', height: 320, backgroundColor: colors.bg3 },
+  heroImg:      { width: '100%', height: '100%' },
+  heroPlaceholder: {
+    width: '100%', height: '100%',
+    alignItems: 'center', justifyContent: 'center',
   },
-  thumb: { width: '100%', height: '100%' },
-  thumbPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  thumbPlaceholderText: { color: '#4a5568', fontSize: 16 },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    background: 'transparent',
+  },
 
-  header: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#252d42' },
-  badgeRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  gradeBadge: { borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
-  gradeBadgeText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  statusBadge: { borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
-  statusBadgeText: { fontSize: 13, fontWeight: '600' },
-  name: { color: '#e2e8f0', fontSize: 22, fontWeight: '700', lineHeight: 28, marginBottom: 4 },
-  series: { color: '#8892a4', fontSize: 14 },
-  modelNumber: { color: '#4a5568', fontSize: 13, marginTop: 4 },
+  infoCard: {
+    backgroundColor: colors.bg2, marginHorizontal: 16, marginTop: -20,
+    borderRadius: 20, padding: 20,
+    borderWidth: 1, borderColor: colors.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
+  },
+  badgeRow:      { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  gradeBadge:    { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
+  gradeBadgeText:{ fontSize: 13, fontWeight: '800' },
+  statusBadge:   {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1,
+  },
+  statusDot:     { width: 6, height: 6, borderRadius: 3 },
+  statusText:    { fontSize: 12, fontWeight: '600' },
 
-  section: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#252d42' },
+  name:     { color: colors.text, fontSize: 24, fontWeight: '800', lineHeight: 30, marginBottom: 4 },
+  series:   { color: colors.text2, fontSize: 15, marginBottom: 4 },
+  modelNum: { color: colors.text3, fontSize: 13 },
+
+  section:      { paddingHorizontal: 16, paddingTop: 24 },
   sectionTitle: {
-    color: '#4a5568', fontSize: 11, letterSpacing: 1.2,
-    textTransform: 'uppercase', marginBottom: 10, fontWeight: '600',
+    color: colors.text3, fontSize: 11, fontWeight: '700',
+    letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 12,
   },
-  notes: { color: '#8892a4', fontSize: 15, lineHeight: 22 },
+  notesBox:   { backgroundColor: colors.surface, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border },
+  notesText:  { color: colors.text2, fontSize: 15, lineHeight: 24 },
 
   buildPhoto: {
-    width: (width - 48) / 2, height: (width - 48) / 2,
-    borderRadius: 8, backgroundColor: '#13161e',
+    width: (width - 52) / 2, height: (width - 52) / 2,
+    borderRadius: 12, backgroundColor: colors.surface,
   },
 });
