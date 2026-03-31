@@ -3,50 +3,52 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
 import { fetchInventory } from '../services/api';
-import { colors, grade as gradeTheme, status as statusTheme } from '../constants/theme';
+import { colors, grade as gradeTheme } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 
-// ── Donut Chart ────────────────────────────────────────────────────────────────
-function DonutChart({ slices, size = 200, thickness = 36 }) {
-  const r = (size - thickness) / 2;
-  const cx = size / 2;
-  const cy = size / 2;
-  const circumference = 2 * Math.PI * r;
+// ── Segmented bar chart used as donut replacement ──────────────────────────────
+function GradeSegmentBar({ slices }) {
   const total = slices.reduce((s, d) => s + d.value, 0);
-
-  let cumulative = 0;
-  const paths = slices.map((slice, i) => {
-    const fraction = slice.value / total;
-    const offset = circumference - fraction * circumference;
-    const rotation = (cumulative / total) * 360 - 90;
-    cumulative += slice.value;
-    return (
-      <Circle
-        key={i}
-        cx={cx} cy={cy} r={r}
-        fill="transparent"
-        stroke={slice.color}
-        strokeWidth={thickness}
-        strokeDasharray={`${circumference} ${circumference}`}
-        strokeDashoffset={offset}
-        transform={`rotate(${rotation} ${cx} ${cy})`}
-        strokeLinecap="butt"
-      />
-    );
-  });
-
   return (
-    <Svg width={size} height={size}>
-      <Circle cx={cx} cy={cy} r={r} fill="transparent" stroke={colors.border} strokeWidth={thickness} />
-      {paths}
-      <SvgText x={cx} y={cy - 8} textAnchor="middle" fill={colors.text} fontSize="28" fontWeight="800">{total}</SvgText>
-      <SvgText x={cx} y={cy + 14} textAnchor="middle" fill={colors.text2} fontSize="12">Total Kits</SvgText>
-    </Svg>
+    <View>
+      <View style={seg.bar}>
+        {slices.map((s, i) => (
+          <View
+            key={i}
+            style={[
+              seg.segment,
+              { flex: s.value / total, backgroundColor: s.color },
+              i === 0 && seg.first,
+              i === slices.length - 1 && seg.last,
+            ]}
+          />
+        ))}
+      </View>
+      <View style={seg.legend}>
+        {slices.map((s, i) => (
+          <View key={i} style={seg.legendItem}>
+            <View style={[seg.dot, { backgroundColor: s.color }]} />
+            <Text style={seg.legendLabel}>{s.label}</Text>
+            <Text style={seg.legendCount}>{s.value}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
+const seg = StyleSheet.create({
+  bar:         { flexDirection: 'row', height: 20, borderRadius: 10, overflow: 'hidden', gap: 2, marginBottom: 16 },
+  segment:     {},
+  first:       { borderTopLeftRadius: 10, borderBottomLeftRadius: 10 },
+  last:        { borderTopRightRadius: 10, borderBottomRightRadius: 10 },
+  legend:      { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  legendItem:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dot:         { width: 9, height: 9, borderRadius: 5 },
+  legendLabel: { color: colors.text2, fontSize: 12, fontWeight: '600' },
+  legendCount: { color: colors.text3, fontSize: 12, marginLeft: 2 },
+});
 
 // ── Progress Bar ───────────────────────────────────────────────────────────────
 function ProgressBar({ label, value, total, color }) {
@@ -55,7 +57,9 @@ function ProgressBar({ label, value, total, color }) {
     <View style={pb.row}>
       <View style={pb.labelRow}>
         <Text style={pb.label}>{label}</Text>
-        <Text style={[pb.value, { color }]}>{value} <Text style={pb.pct}>({Math.round(pct * 100)}%)</Text></Text>
+        <Text style={[pb.value, { color }]}>
+          {value} <Text style={pb.pct}>({Math.round(pct * 100)}%)</Text>
+        </Text>
       </View>
       <View style={pb.track}>
         <View style={[pb.fill, { width: `${pct * 100}%`, backgroundColor: color }]} />
@@ -99,33 +103,39 @@ const gb = StyleSheet.create({
 });
 
 // ── Main Screen ────────────────────────────────────────────────────────────────
+const GRADE_ORDER = ['PG', 'MG', 'RG', 'FM', 'HG', 'EG', 'OTHER'];
+
 export default function StatsScreen() {
   const [inventory, setInventory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
-    fetchInventory().then(data => { setInventory(data); setLoading(false); }).catch(() => setLoading(false));
+    fetchInventory()
+      .then(data => { setInventory(data); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
   if (loading) return (
     <View style={styles.loader}><ActivityIndicator size="large" color={colors.accent} /></View>
   );
 
-  const total       = inventory.length;
-  const complete    = inventory.filter(k => k.status === 'complete').length;
-  const inProgress  = inventory.filter(k => k.status === 'in-progress').length;
-  const backlog     = inventory.filter(k => k.status === 'backlog').length;
+  const total      = inventory.length;
+  const complete   = inventory.filter(k => k.status === 'complete').length;
+  const inProgress = inventory.filter(k => k.status === 'in-progress').length;
+  const backlog    = inventory.filter(k => k.status === 'backlog').length;
   const completePct = total ? Math.round((complete / total) * 100) : 0;
 
-  // Grade breakdown
-  const GRADE_ORDER = ['PG', 'MG', 'RG', 'FM', 'HG', 'EG', 'OTHER'];
-  const gradeCounts = GRADE_ORDER.map(g => ({ grade: g, count: inventory.filter(k => k.grade === g).length }))
+  const gradeCounts = GRADE_ORDER
+    .map(g => ({ grade: g, count: inventory.filter(k => k.grade === g).length }))
     .filter(g => g.count > 0);
   const maxGradeCount = Math.max(...gradeCounts.map(g => g.count));
 
-  const donutSlices = gradeCounts.map(g => ({ value: g.count, color: gradeTheme[g.grade]?.bg || colors.text3 }));
+  const segmentSlices = gradeCounts.map(g => ({
+    value: g.count,
+    color: gradeTheme[g.grade]?.bg || colors.text3,
+    label: g.grade,
+  }));
 
-  // Top series
   const seriesMap = {};
   inventory.forEach(k => { seriesMap[k.series] = (seriesMap[k.series] || 0) + 1; });
   const topSeries = Object.entries(seriesMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
@@ -134,7 +144,7 @@ export default function StatsScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={styles.scroll}>
 
-        {/* Hero stat */}
+        {/* Hero */}
         <View style={styles.heroRow}>
           <View style={styles.heroStat}>
             <Text style={styles.heroNum}>{completePct}%</Text>
@@ -143,7 +153,7 @@ export default function StatsScreen() {
           <View style={styles.miniStats}>
             <View style={styles.miniStat}>
               <Text style={[styles.miniNum, { color: colors.green }]}>{complete}</Text>
-              <Text style={styles.miniLabel}>Complete</Text>
+              <Text style={styles.miniLabel}>Done</Text>
             </View>
             <View style={styles.miniDivider} />
             <View style={styles.miniStat}>
@@ -158,21 +168,10 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        {/* Grade donut */}
+        {/* Grade distribution */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Grade Distribution</Text>
-          <View style={styles.donutWrap}>
-            <DonutChart slices={donutSlices} size={180} thickness={32} />
-            <View style={styles.legend}>
-              {gradeCounts.map(g => (
-                <View key={g.grade} style={styles.legendRow}>
-                  <View style={[styles.legendDot, { backgroundColor: gradeTheme[g.grade]?.bg }]} />
-                  <Text style={styles.legendLabel}>{g.grade}</Text>
-                  <Text style={styles.legendCount}>{g.count}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+          <GradeSegmentBar slices={segmentSlices} />
         </View>
 
         {/* Status breakdown */}
@@ -183,7 +182,7 @@ export default function StatsScreen() {
           <ProgressBar label="Backlog"     value={backlog}    total={total} color={colors.text3} />
         </View>
 
-        {/* Grade bars */}
+        {/* Kits by grade */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Kits by Grade</Text>
           {gradeCounts.sort((a, b) => b.count - a.count).map(g => (
@@ -195,7 +194,7 @@ export default function StatsScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Top Series</Text>
           {topSeries.map(([series, count], i) => (
-            <View key={series} style={styles.seriesRow}>
+            <View key={series} style={[styles.seriesRow, i === topSeries.length - 1 && { borderBottomWidth: 0 }]}>
               <Text style={styles.seriesRank}>#{i + 1}</Text>
               <Text style={styles.seriesName} numberOfLines={1}>{series}</Text>
               <View style={styles.seriesBadge}>
@@ -239,18 +238,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1.3, textTransform: 'uppercase', marginBottom: 16,
   },
 
-  donutWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  legend:    { flex: 1, paddingLeft: 16, gap: 8 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendLabel:{ color: colors.text2, fontSize: 13, flex: 1, fontWeight: '600' },
-  legendCount:{ color: colors.text3, fontSize: 13 },
-
   seriesRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  seriesRank:      { color: colors.text3, fontSize: 13, width: 24, fontWeight: '700' },
+  seriesRank:      { color: colors.text3, fontSize: 13, width: 28, fontWeight: '700' },
   seriesName:      { flex: 1, color: colors.text, fontSize: 14 },
   seriesBadge:     { backgroundColor: colors.bg3, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3 },
   seriesBadgeText: { color: colors.text2, fontSize: 13, fontWeight: '700' },
