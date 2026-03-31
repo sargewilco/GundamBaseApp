@@ -63,8 +63,8 @@ export default function CollectionScreen({ navigation }) {
     </View>
   );
 
-  return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+  const ListHeader = (
+    <>
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statPrimary}>
@@ -131,14 +131,18 @@ export default function CollectionScreen({ navigation }) {
           );
         }}
       />
+    </>
+  );
 
-      {/* Grid */}
+  return (
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <FlatList
         data={filtered}
         keyExtractor={k => k.id}
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.grid}
+        ListHeaderComponent={ListHeader}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.accent} />}
         renderItem={({ item }) => <KitCard kit={item} onPress={() => navigation.navigate('KitDetail', { kit: item, onSave: load })} />}
         ListEmptyComponent={
