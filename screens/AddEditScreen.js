@@ -167,7 +167,7 @@ export default function AddEditScreen({ route, navigation }) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Sign In Required</Text>
-            <Text style={styles.modalSubtitle}>Enter your GundamBase credentials to make changes.</Text>
+            <Text style={styles.modalSubtitle}>Enter your Kit Keeper credentials to make changes.</Text>
             <TextInput style={styles.modalInput} placeholder="Username" placeholderTextColor={colors.text3}
               value={username} onChangeText={setUsername} autoCapitalize="none" />
             <TextInput style={styles.modalInput} placeholder="Password" placeholderTextColor={colors.text3}
